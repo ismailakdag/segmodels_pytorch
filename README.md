@@ -16,8 +16,8 @@ This repository contains a PyTorch implementation for image segmentation using t
 
 1. Clone this repository:
 ```bash
-git clone <your-repo-url>
-cd <repo-name>
+git clone <https://github.com/ismailakdag/segmodels_pytorch>
+cd <segmodels_pytorch>
 ```
 
 2. Install the required packages:
