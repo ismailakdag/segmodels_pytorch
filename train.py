@@ -40,6 +40,14 @@ class DentalDataset(Dataset):
         self.mask_filenames = sorted(os.listdir(masks_dir))    # Sorted list of mask filenames
         self.transform = transform
 
+        # Get image dimensions from the first image
+        if len(self.image_filenames) > 0:
+            first_image_path = os.path.join(images_dir, self.image_filenames[0])
+            with Image.open(first_image_path) as img:
+                self.image_width, self.image_height = img.size
+        else:
+            self.image_width, self.image_height = 0, 0
+
     def __len__(self):
         """
         Returns the total number of samples in the dataset.
@@ -106,9 +114,14 @@ def get_checkpoint_dir(config):
     Get the checkpoint directory based on model configuration.
     This creates a unique identifier without timestamp for matching purposes.
     """
-    return os.path.join("checkpoints",
-                       f"{config['model']['architecture']}_{config['model']['encoder_name']}_{config['model']['encoder_weights']}",
-                       f"{config['image_size']}_{config['batch_size']}")
+    # Format image size for directory name
+    img_size_str = f"{config['image_size']['width']}x{config['image_size']['height']}"
+    
+    return os.path.join(
+        "checkpoints",
+        f"{config['model']['architecture']}_{config['model']['encoder_name']}_{config['model']['encoder_weights']}",
+        f"{img_size_str}_b{config['batch_size']}"  # b for batch size
+    )
 
 def get_run_dir(config, checkpoint_dir):
     """
@@ -176,7 +189,6 @@ if __name__ == "__main__":
 
     # Transforms
     transform = transforms.Compose([
-        # transforms.Resize((config["image_size"], config["image_size"])),  # Resize images and masks
         transforms.ToTensor()  # Convert images and masks to PyTorch tensors
     ])
 
@@ -188,10 +200,14 @@ if __name__ == "__main__":
     valid_loader = DataLoader(valid_dataset, batch_size=config["batch_size"], shuffle=False) # DataLoader for validation
 
     # Print dataset information
-    print(f"Total Images in Training Set: {len(train_dataset)}")
-    print(f"Total Images in Validation Set: {len(valid_dataset)}")
+    print(f"Total Images in Training Set: {len(train_dataset)} ({train_dataset.image_width}x{train_dataset.image_height})")
+    print(f"Total Images in Validation Set: {len(valid_dataset)} ({valid_dataset.image_width}x{valid_dataset.image_height})")
     print(f"Batch Size: {config['batch_size']}")
-    print(f"Image Size: {config['image_size']}x{config['image_size']}")
+    print(f"Target Size: {config['image_size']['width']}x{config['image_size']['height']}")
+    if (train_dataset.image_width != config['image_size']['width'] or 
+        train_dataset.image_height != config['image_size']['height']):
+        print("\n⚠️ Warning: Actual image dimensions differ from target dimensions in config!")
+        print("Please ensure your images are properly resized or update the config.")
     print(f"Starting epochs: {config['num_epochs']}")
     if torch.cuda.is_available():
         print(f"Using GPU: {torch.cuda.get_device_name(0)}")
@@ -236,13 +252,14 @@ if __name__ == "__main__":
         }
 
     # Initialize model, criterion and optimizer
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Unet(
         encoder_name=config["model"]["encoder_name"],       # Encoder architecture (e.g., resnet34, mobilenet_v2, efficientnet-b0)
         encoder_weights=config["model"]["encoder_weights"], # Pretrained weights (e.g., imagenet, None)
         in_channels=3,                                      # Input channels (RGB images)
         classes=config["model"]["classes"]                  # Number of output classes (binary segmentation)
     )
-    model = model.cuda() if torch.cuda.is_available() else model  # Move model to GPU if available
+    model = model.to(device)  # Move model to GPU if available
 
     # Loss Function Options:
     # 1. DiceLoss(mode='binary'/'multiclass'/'multilabel') - Good for imbalanced datasets
@@ -304,7 +321,7 @@ if __name__ == "__main__":
         epoch_start_time = time.time()
 
         for batch_idx, (images, masks) in enumerate(train_loader):
-            images, masks = images.cuda(), masks.cuda()  # Move data to GPU if available
+            images, masks = images.to(device), masks.to(device)  # Move data to GPU if available
 
             optimizer.zero_grad()  # Clear gradients
             outputs = model(images)  # Forward pass
@@ -341,7 +358,7 @@ if __name__ == "__main__":
 
         with torch.no_grad():
             for images, masks in valid_loader:
-                images, masks = images.cuda(), masks.cuda()  # Move data to GPU if available
+                images, masks = images.to(device), masks.to(device)  # Move data to GPU if available
 
                 outputs = model(images)  # Forward pass
                 loss = criterion(outputs, masks)  # Compute loss

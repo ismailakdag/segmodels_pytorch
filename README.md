@@ -1,111 +1,133 @@
-# PyTorch Segmentation Models
+# Segmentation Models PyTorch Framework
 
-This repository contains a PyTorch implementation for image segmentation using the [segmentation_models.pytorch](https://github.com/qubvel/segmentation_models.pytorch) library. It provides a flexible and easy-to-use framework for training and evaluating various segmentation models.
+A comprehensive framework for image segmentation using PyTorch, featuring multiple state-of-the-art architectures and a user-friendly GUI interface.
+
+## Technical Requirements
+
+### Input Specifications
+- **Image Dimensions**: Input dimensions must be multiples of 16 due to the architectural constraints of the encoder-decoder networks and feature pyramid networks.
+- **Mask Format**: For binary segmentation tasks, masks should be binary matrices where:
+  - Background pixels = 0
+  - Foreground pixels = 1
+  - Data type: uint8 or bool
+
+### System Requirements
+- CUDA-compatible GPU with minimum 4GB VRAM
+- Python 3.8 or higher
+- PyTorch 2.0 or higher
 
 ## Features
 
-- Support for various encoder architectures (ResNet, MobileNet, EfficientNet, etc.)
-- Multiple loss functions (Dice, BCE, Jaccard, etc.)
-- Training with customizable configurations
-- Real-time GPU memory monitoring
-- Checkpoint saving and loading
-- Detailed metrics tracking
-- Image augmentation support
+### Model Architectures
+- **Available Architectures**:
+  - U-Net
+  - U-Net++
+  - MAnet
+  - Linknet
+  - FPN (Feature Pyramid Network)
+  - PSPNet (Pyramid Scene Parsing Network)
+  - DeepLabV3
+  - DeepLabV3+
+  - PAN (Pyramid Attention Network)
+
+- **Encoders**: Wide range of backbone networks including:
+  - ResNet (18, 34, 50, 101, 152)
+  - ResNeXt
+  - SE-ResNet
+  - DenseNet
+  - EfficientNet (B0-B7)
+  - And more...
+
+### Graphical User Interfaces
+
+#### 1. Training GUI
+- Configure and monitor training sessions
+- Features:
+  - Model architecture and encoder selection
+  - Training hyperparameter configuration
+  - Real-time training progress visualization
+  - GPU memory monitoring with safety limits
+  - Checkpoint management system
+  - Directory selection for training/validation data
+  - Dynamic progress bars for epochs and batches
+
+#### 2. Resize GUI
+- Batch resize images and masks
+- Features:
+  - Independent width/height control
+  - Automatic aspect ratio maintenance
+  - Batch processing capability
+  - Preview functionality
+  - Dataset statistics display
+
+#### 3. Augmentation GUI
+- Configure and preview augmentations
+- Features:
+  - Real-time augmentation preview
+  - Multiple augmentation techniques
+  - Batch processing support
+  - Parameter adjustment interface
 
 ## Installation
 
-1. Clone this repository:
-```bash
-git clone <https://github.com/ismailakdag/segmodels_pytorch>
-cd <segmodels_pytorch>
-```
-
-2. Install the required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
+## Usage
+
+### Starting the Training GUI
+```bash
+python scripts/train_gui.py
+```
+
+### Starting the Resize GUI
+```bash
+python scripts/resize_gui.py
+```
+
+### Starting the Augmentation GUI
+```bash
+python scripts/augmentation_gui.py
+```
+
+## Training Process
+
+1. **Data Preparation**:
+   - Organize images and masks in separate directories
+   - Use Resize GUI to ensure consistent dimensions
+   - Optionally apply augmentations using Augmentation GUI
+
+2. **Configuration**:
+   - Select model architecture and encoder
+   - Set training parameters (batch size, learning rate, epochs)
+   - Configure image dimensions (must be multiples of 16)
+   - Set GPU memory safety limit
+
+3. **Training**:
+   - Start new training or continue from checkpoint
+   - Monitor progress through GUI
+   - View real-time metrics and GPU usage
+   - Automatic checkpoint saving
+
+4. **Checkpoints**:
+   - Automatically saved in: `checkpoints/{architecture}_{encoder}_{weights}/{dimensions}_b{batch_size}/`
+   - Continue training from latest checkpoint
+   - Checkpoint naming format: `latest_checkpoint.pth`
+
 ## Project Structure
 
 ```
-├── train.py           # Main training script
-├── predict.py         # Inference script
-├── config.json        # Configuration file
-├── scripts/          # Utility scripts for data preprocessing
-├── requirements.txt   # Python dependencies
-└── .gitignore        # Git ignore file
+segmodels_pytorch/
+├── checkpoints/          # Training checkpoints
+├── scripts/             # GUI and utility scripts
+├── data/                # Dataset directory
+│   ├── images/         # Input images
+│   └── masks/          # Segmentation masks
+├── config.json         # Configuration file
+├── requirements.txt    # Dependencies
+└── README.md          # Documentation
 ```
-
-## Configuration
-
-Edit `config.json` to customize your training:
-
-```json
-{
-    "train_images_dir": "path/to/train/images",
-    "train_masks_dir": "path/to/train/masks",
-    "valid_images_dir": "path/to/valid/images",
-    "valid_masks_dir": "path/to/valid/masks",
-    "model": {
-        "architecture": "Unet",
-        "encoder_name": "mobilenet_v2",
-        "encoder_weights": "imagenet",
-        "classes": 1
-    },
-    "batch_size": 8,
-    "num_epochs": 100,
-    "image_size": 512,
-    "learning_rate": 0.001
-}
-```
-
-## Usage
-
-1. Prepare your dataset:
-   - Organize your images and masks in separate directories
-   - Update paths in `config.json`
-
-2. Start training:
-```bash
-python train.py
-```
-
-3. For inference:
-```bash
-python predict.py --input path/to/image --model path/to/model
-```
-
-## Available Options
-
-### Model Architectures
-- Unet
-- FPN
-- DeepLabV3
-- DeepLabV3+
-- PSPNet
-
-### Encoders
-- ResNet (18, 34, 50, 101, 152)
-- MobileNet (v2)
-- EfficientNet (b0-b7)
-- And more...
-
-### Loss Functions
-- DiceLoss
-- BCEWithLogitsLoss
-- CrossEntropyLoss
-- JaccardLoss
-- Combined losses
-
-### Optimizers
-- Adam
-- SGD
-- AdamW
-- RMSprop
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
@@ -113,5 +135,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- [segmentation_models.pytorch](https://github.com/qubvel/segmentation_models.pytorch) for the base implementation
-- PyTorch team for the amazing deep learning framework
+- Segmentation Models PyTorch
+- PyTorch
+- PyQt5
