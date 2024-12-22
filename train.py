@@ -7,7 +7,7 @@ from datetime import datetime
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from segmentation_models_pytorch import Unet
-from segmentation_models_pytorch.losses import DiceLoss, JaccardLoss, BCEWithLogitsLoss
+from segmentation_models_pytorch.losses import DiceLoss, JaccardLoss, SoftBCEWithLogitsLoss
 from segmentation_models_pytorch.utils.metrics import IoU
 from PIL import Image
 import pynvml
