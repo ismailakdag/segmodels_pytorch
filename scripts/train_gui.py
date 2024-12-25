@@ -5,9 +5,9 @@ import re
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                            QHBoxLayout, QPushButton, QLabel, QFileDialog, 
                            QSpinBox, QDoubleSpinBox, QComboBox, QProgressBar, 
-                           QMessageBox, QGroupBox, QTextEdit, QScrollArea)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QFont, QFontDatabase
+                           QMessageBox, QGroupBox, QTextEdit, QScrollArea, QGridLayout)
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl
+from PyQt5.QtGui import QFont, QDesktopServices
 import torch
 from segmentation_models_pytorch import (Unet, UnetPlusPlus, MAnet, Linknet, 
                                        FPN, PSPNet, DeepLabV3, DeepLabV3Plus, PAN)
@@ -78,7 +78,7 @@ class TrainWorker(QThread):
                     gpu_memory = float(memory_match.group(1))
                     self.gpu_memory.emit(gpu_memory)
                     if gpu_memory > self.max_gpu_memory:
-                        self.progress.emit(f"WARNING: GPU memory usage ({gpu_memory:.2f} GB) exceeded limit ({self.max_gpu_memory:.2f} GB). Stopping training...")
+                        self.progress.emit(f"\n⚠️WARNING: GPU memory usage ({gpu_memory:.2f} GB) exceeded limit ({self.max_gpu_memory:.2f} GB). Stopping training...")
                         self.stop()
                         break
                 
@@ -219,6 +219,7 @@ class TrainGUI(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle('Training Configuration GUI')
+        self.setFont(self.text_font)
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #f0f0f0;
@@ -289,6 +290,7 @@ class TrainGUI(QMainWindow):
         # Training Images
         train_img_layout = QHBoxLayout()
         self.train_img_path = QLabel(self.config["train_images_dir"])
+        self.setFont(self.text_font)
         train_img_btn = QPushButton("Browse")
         train_img_btn.clicked.connect(lambda: self.select_directory('train_images_dir'))
         train_img_layout.addWidget(QLabel("Training Images:"))
@@ -385,62 +387,80 @@ class TrainGUI(QMainWindow):
         # Model Parameters
         model_group = QGroupBox("Model Parameters")
         model_group.setFont(self.title_font)
-        model_layout = QVBoxLayout()
+        model_layout = QGridLayout()
 
-        # Architecture
-        arch_layout = QHBoxLayout()
+        # Architecture selection
         arch_label = QLabel("Architecture:")
         arch_label.setFont(self.text_font)
-        self.architecture = QComboBox()
-        self.architecture.setFont(self.text_font)
-        self.architecture.addItems(sorted(self.available_architectures.keys()))
-        current_arch = self.config["model"]["architecture"]
-        if current_arch in self.available_architectures:
-            self.architecture.setCurrentText(current_arch)
-        self.architecture.currentTextChanged.connect(self.check_for_checkpoint)
-        arch_layout.addWidget(arch_label)
-        arch_layout.addWidget(self.architecture)
-
-        # Encoder Name
-        encoder_layout = QHBoxLayout()
+        self.arch_combo = QComboBox()
+        self.arch_combo.setFont(self.text_font)
+        architectures = {
+            'Unet': {'name': 'U-Net', 'paper': 'https://arxiv.org/abs/1505.04597', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#unet'},
+            'UnetPlusPlus': {'name': 'U-Net++', 'paper': 'https://arxiv.org/abs/1807.10165', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#unetplusplus'},
+            'MAnet': {'name': 'MA-Net', 'paper': 'https://arxiv.org/abs/1902.05016', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#manet'},
+            'Linknet': {'name': 'LinkNet', 'paper': 'https://arxiv.org/abs/1707.03718', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#linknet'},
+            'FPN': {'name': 'FPN', 'paper': 'https://arxiv.org/abs/1612.03144', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#fpn'},
+            'PSPNet': {'name': 'PSPNet', 'paper': 'https://arxiv.org/abs/1612.01105', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#pspnet'},
+            'DeepLabV3': {'name': 'DeepLabV3', 'paper': 'https://arxiv.org/abs/1706.05587', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#deeplabv3'},
+            'DeepLabV3Plus': {'name': 'DeepLabV3+', 'paper': 'https://arxiv.org/abs/1802.02611', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#deeplabv3plus'},
+            'PAN': {'name': 'PAN', 'paper': 'https://arxiv.org/abs/1805.10180', 'docs': 'https://segmentation-models.readthedocs.io/en/latest/models.html#pan'},
+        }
+        for arch_key in architectures:
+            arch_info = architectures[arch_key]
+            self.arch_combo.addItem(arch_info['name'], arch_key)
+            
+        # Add info buttons for architecture
+        arch_paper_btn = QPushButton("📄 Paper")
+        arch_paper_btn.setFont(self.text_font)
+        arch_docs_btn = QPushButton("📚 Docs")
+        arch_docs_btn.setFont(self.text_font)
+        
+        # Connect buttons to open URLs
+        arch_paper_btn.clicked.connect(lambda: self.open_url(architectures[self.arch_combo.currentData()]['paper']))
+        arch_docs_btn.clicked.connect(lambda: self.open_url(architectures[self.arch_combo.currentData()]['docs']))
+        
+        model_layout.addWidget(arch_label, 0, 0)
+        model_layout.addWidget(self.arch_combo, 0, 1)
+        model_layout.addWidget(arch_paper_btn, 0, 2)
+        model_layout.addWidget(arch_docs_btn, 0, 3)
+        
+        # Encoder Family selection
+        encoder_family_label = QLabel("Encoder Family:")
+        encoder_family_label.setFont(self.text_font)
+        self.encoder_family_combo = QComboBox()
+        self.encoder_family_combo.setFont(self.text_font)
+        self.encoder_family_combo.addItems(['ResNet', 'ResNeXt', 'DenseNet', 'Inception', 'VGG', 'EfficientNet'])
+        
+        model_layout.addWidget(encoder_family_label, 1, 0)
+        model_layout.addWidget(self.encoder_family_combo, 1, 1, 1, 3)
+        
+        # Encoder selection
         encoder_label = QLabel("Encoder:")
         encoder_label.setFont(self.text_font)
-        self.encoder_name = QComboBox()
-        self.encoder_name.setFont(self.text_font)
-        self.encoder_name.addItems(self.available_encoders)
-        current_encoder = self.config["model"]["encoder_name"]
-        if current_encoder in self.available_encoders:
-            self.encoder_name.setCurrentText(current_encoder)
-        self.encoder_name.currentTextChanged.connect(self.check_for_checkpoint)
-        encoder_layout.addWidget(encoder_label)
-        encoder_layout.addWidget(self.encoder_name)
-
-        # Encoder Weights
-        weights_layout = QHBoxLayout()
-        weights_label = QLabel("Encoder Weights:")
+        self.encoder_combo = QComboBox()
+        self.encoder_combo.setFont(self.text_font)
+        
+        # Encoder info label
+        self.encoder_info_label = QLabel()
+        self.encoder_info_label.setFont(self.text_font)
+        
+        model_layout.addWidget(encoder_label, 2, 0)
+        model_layout.addWidget(self.encoder_combo, 2, 1, 1, 2)
+        model_layout.addWidget(self.encoder_info_label, 2, 3)
+        
+        # Weights selection
+        weights_label = QLabel("Pretrained Weights:")
         weights_label.setFont(self.text_font)
-        self.encoder_weights = QComboBox()
-        self.encoder_weights.setFont(self.text_font)
-        self.encoder_weights.addItems(['imagenet', 'None'])
-        weights_layout.addWidget(weights_label)
-        weights_layout.addWidget(self.encoder_weights)
-
-        # GPU Memory Limit
-        gpu_layout = QHBoxLayout()
-        gpu_label = QLabel("Max GPU Memory (GB):")
-        gpu_label.setFont(self.text_font)
-        self.gpu_limit = QDoubleSpinBox()
-        self.gpu_limit.setFont(self.text_font)
-        self.gpu_limit.setRange(1, 48)
-        self.gpu_limit.setValue(10.0)
-        self.gpu_limit.setDecimals(1)
-        gpu_layout.addWidget(gpu_label)
-        gpu_layout.addWidget(self.gpu_limit)
-
-        model_layout.addLayout(arch_layout)
-        model_layout.addLayout(encoder_layout)
-        model_layout.addLayout(weights_layout)
-        model_layout.addLayout(gpu_layout)
+        self.weights_combo = QComboBox()
+        self.weights_combo.setFont(self.text_font)
+        
+        model_layout.addWidget(weights_label, 3, 0)
+        model_layout.addWidget(self.weights_combo, 3, 1, 1, 3)
+        
+        # Connect signals
+        self.encoder_family_combo.currentTextChanged.connect(self.update_encoders)
+        self.encoder_combo.currentTextChanged.connect(self.update_weights)
+        
         model_group.setLayout(model_layout)
 
         # Progress Bars
@@ -576,9 +596,9 @@ class TrainGUI(QMainWindow):
         old_batch = self.config["batch_size"]
         
         # Update config with new values
-        self.config["model"]["architecture"] = self.architecture.currentText()
-        self.config["model"]["encoder_name"] = self.encoder_name.currentText()
-        self.config["model"]["encoder_weights"] = None if self.encoder_weights.currentText() == 'None' else self.encoder_weights.currentText()
+        self.config["model"]["architecture"] = self.arch_combo.currentData()
+        self.config["model"]["encoder_name"] = self.encoder_combo.currentText()
+        self.config["model"]["encoder_weights"] = self.weights_combo.currentText()
         self.config["batch_size"] = self.batch_size.value()
         self.config["learning_rate"] = self.learning_rate.value()
         self.config["num_epochs"] = self.num_epochs.value()
@@ -620,7 +640,7 @@ class TrainGUI(QMainWindow):
         self.output_text.clear()
 
         # Create and start the worker thread
-        self.worker = TrainWorker('config.json', use_checkpoint, self.gpu_limit.value())
+        self.worker = TrainWorker('config.json', use_checkpoint, 10.0)
         self.worker.progress.connect(self.update_output)
         self.worker.epoch_progress.connect(self.epoch_progress.setValue)
         self.worker.batch_progress.connect(self.batch_progress.setValue)
@@ -659,6 +679,32 @@ class TrainGUI(QMainWindow):
         self.stop_btn.setEnabled(False)
         self.check_for_checkpoint()  # Refresh checkpoint status
         QMessageBox.information(self, 'Complete', 'Training process has finished!')
+
+    def open_url(self, url):
+        """Open URL in default browser."""
+        QDesktopServices.openUrl(QUrl(url))
+
+    def update_encoders(self, family):
+        """Update available encoders when family changes."""
+        self.encoder_combo.clear()
+        if family == 'ResNet':
+            self.encoder_combo.addItems(['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152'])
+        elif family == 'ResNeXt':
+            self.encoder_combo.addItems(['resnext50_32x4d', 'resnext101_32x8d', 'timm-resnext50_32x4d'])
+        elif family == 'DenseNet':
+            self.encoder_combo.addItems(['densenet121', 'densenet169', 'densenet201'])
+        elif family == 'Inception':
+            self.encoder_combo.addItems(['inceptionv4'])
+        elif family == 'VGG':
+            self.encoder_combo.addItems(['vgg11', 'vgg13', 'vgg16', 'vgg19'])
+        elif family == 'EfficientNet':
+            self.encoder_combo.addItems(['efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3', 'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7'])
+        self.update_weights()
+
+    def update_weights(self):
+        """Update available weights when encoder changes."""
+        self.weights_combo.clear()
+        self.weights_combo.addItems(['imagenet', 'None'])
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

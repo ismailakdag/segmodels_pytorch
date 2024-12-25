@@ -267,7 +267,15 @@ if __name__ == "__main__":
     # 3. CrossEntropyLoss() - For multiclass segmentation
     # 4. JaccardLoss() - IoU-based loss, good for segmentation
     # 5. Combined losses: e.g., criterion = 0.5 * DiceLoss() + 0.5 * BCEWithLogitsLoss()
-    criterion = DiceLoss(mode="binary")  # Initialize DiceLoss for binary segmentation
+    criterion_dice = DiceLoss(mode="binary")  # Initialize DiceLoss for binary segmentation
+    criterion_bce = torch.nn.BCEWithLogitsLoss()  # Initialize BCEWithLogitsLoss
+
+    def combined_loss(pred, target):
+        dice_loss = criterion_dice(pred, target)
+        bce_loss = criterion_bce(pred, target)
+        
+        return 0.5 * dice_loss + 0.5*  bce_loss
+
 
     # Optimizer Options:
     # 1. Adam: Good default choice, adapts learning rate per parameter
@@ -278,7 +286,9 @@ if __name__ == "__main__":
     #    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
     # 4. RMSprop: Good for RNNs and some computer vision tasks
     #    optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+    # optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+ 
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config["learning_rate"])
 
     # Learning Rate Scheduler Options (can be added):
     # 1. ReduceLROnPlateau: Reduces LR when metric plateaus
@@ -308,8 +318,7 @@ if __name__ == "__main__":
     else:
         best_metrics = None
         best_loss = float('inf')
-
-    best_epoch = -1
+        best_epoch = 0
 
     # Training Loop
     session_start_time = time.time()
@@ -325,7 +334,8 @@ if __name__ == "__main__":
 
             optimizer.zero_grad()  # Clear gradients
             outputs = model(images)  # Forward pass
-            loss = criterion(outputs, masks)  # Compute loss
+            # loss = criterion(outputs, masks)  # Compute loss
+            loss = combined_loss(outputs, masks)
             loss.backward()  # Backward pass
             optimizer.step()  # Update model parameters
 
@@ -361,7 +371,8 @@ if __name__ == "__main__":
                 images, masks = images.to(device), masks.to(device)  # Move data to GPU if available
 
                 outputs = model(images)  # Forward pass
-                loss = criterion(outputs, masks)  # Compute loss
+                # loss = criterion(outputs, masks)  # Compute loss
+                loss = combined_loss(outputs, masks)
                 valid_loss += loss.item()  # Accumulate validation loss
 
                 # Update validation metrics
@@ -396,6 +407,16 @@ if __name__ == "__main__":
         results["epochs"].append(epoch_data)
         save_results(results_file, results)
 
+        # Update best epoch info if current validation loss is better
+        if valid_loss < best_loss:
+            best_loss = valid_loss
+            best_metrics = valid_metrics
+            best_epoch = epoch
+            
+            # Save checkpoint for best model
+            checkpoint_path = os.path.join(run_dir, "best_model.pth")
+            save_checkpoint(model, optimizer, epoch, best_metrics, best_loss, time.time() - session_start_time, checkpoint_path)
+
         # Save checkpoint after each epoch
         epoch_total_time = total_training_time + (time.time() - session_start_time)
         save_checkpoint(model, optimizer, epoch + 1, best_metrics, best_loss, 
@@ -404,12 +425,6 @@ if __name__ == "__main__":
         # Save model state for this epoch
         torch.save(model.state_dict(), os.path.join(epochs_dir, f"epoch_{epoch}.pth"))
         
-        if valid_loss < best_loss:
-            best_loss = valid_loss
-            best_epoch = epoch
-            best_metrics = valid_metrics
-            torch.save(model.state_dict(), os.path.join(epochs_dir, "best_epoch.pth"))
-
     session_time = time.time() - session_start_time
     total_training_time += session_time
 
