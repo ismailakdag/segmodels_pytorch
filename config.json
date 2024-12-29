@@ -11,8 +11,8 @@
         "height": 256
     },
     "model": {
-        "architecture": "DeepLabV3",
-        "encoder_name": "vgg16",
+        "architecture": "FasterRCNN",
+        "encoder_name": "resnet18",
         "encoder_weights": "imagenet",
         "classes": 1
     },

@@ -92,8 +92,8 @@ if __name__ == "__main__":
     model_path = r"D:\segmodels_pytorch\checkpoints\Unet_resnet34_imagenet_20241220_225048\512_16_100\epochs\best_epoch.pth"  # Path to your trained .pth model file
     imgsvalid_dir = r"D:\segmodels_pytorch\actualimg_masks\images/train"
     masksvalid_dir = r"D:\segmodels_pytorch\actualimg_masks\masks/train"
-    image_path = imgsvalid_dir + "/515.png"
-    actual_mask_path = masksvalid_dir + "/515.png"
+    image_path = imgsvalid_dir + "/496.png"
+    actual_mask_path = masksvalid_dir + "/496.png"
 
     # Transformations
     transform = transforms.Compose([
