@@ -1,0 +1,16 @@
+{
+    "metric_type": "valid",
+    "plot_titles": {
+        "Loss": "Validation Loss"
+    },
+    "legend_labels": {},
+    "plot_colors": {
+        "Train Line": "#a0a0a0",
+        "Background": "#ffffff",
+        "Grid": "#004040",
+        "Validation Line": "#008000"
+    },
+    "title_size": "12",
+    "label_size": "10",
+    "legend_size": "8"
+}

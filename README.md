@@ -68,6 +68,46 @@ A comprehensive framework for image segmentation using PyTorch, featuring multip
   - Batch processing support
   - Parameter adjustment interface
 
+#### 4. Results Visualizer
+- Comprehensive training results analysis and visualization
+- Features:
+  - Multi-experiment comparison
+  - Interactive metric plots with customizable settings
+  - Best performance metrics for each experiment
+  - Detailed epoch-wise analysis
+  - Hardware utilization insights
+  - Export capabilities for plots and metrics
+  - Best epoch tracking for individual metrics (IoU, Precision, Recall, etc.)
+  - Scrollable interface for multiple experiments
+  - Professional scientific visualization with customizable plots
+
+### Visualization Features
+- **Metric Tracking**:
+  - IoU (Intersection over Union)
+  - Precision
+  - Recall
+  - Dice Score
+  - Accuracy
+  - Loss curves
+
+- **Plot Customization**:
+  - Adjustable font sizes
+  - Grid visibility options
+  - Title customization
+  - Multiple export formats (PNG, PDF, SVG)
+  - Scientific color schemes
+
+- **Export Options**:
+  - Training metrics as JSON
+  - Formatted experiment summaries
+  - High-resolution plots
+  - Individual metric analysis
+
+- **Hardware Monitoring**:
+  - GPU memory usage
+  - Training time analysis
+  - Resource utilization stats
+
 ## Installation
 
 ```bash
@@ -89,6 +129,11 @@ python scripts/resize_gui.py
 ### Starting the Augmentation GUI
 ```bash
 python scripts/augmentation_gui.py
+```
+
+### Starting the Results Visualizer
+```bash
+python scripts/results_visualizer.py
 ```
 
 ## Training Process

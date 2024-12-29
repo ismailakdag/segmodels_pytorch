@@ -5,7 +5,8 @@ augmented_data/
 tempforops/
 images/
 masks/
-checkpoints/
+checkpoints/ 
+resdenemeler/
 
 
 
