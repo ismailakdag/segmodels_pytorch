@@ -82,17 +82,21 @@ class Plotter:
                 train_color, valid_color = self._get_colors(j, comparison_mode)
                 
                 if settings.metric_type.get() in ['both', 'train']:
-                    train_metric = [e['train_metrics'][metric] for e in epochs_data]
+                    # Get raw metric values without any conversion
+                    train_metric = [float(e['train_metrics'][metric]) for e in epochs_data]
                     ax.plot(epochs, train_metric, 
                            label=settings.legend_labels.get(f'{metric}_train', f'Train {metric}{label_suffix}'),
                            color=train_color, linewidth=2.5)
                 
                 if settings.metric_type.get() in ['both', 'valid']:
-                    valid_metric = [e['valid_metrics'][metric] for e in epochs_data]
+                    # Get raw metric values without any conversion
+                    valid_metric = [float(e['valid_metrics'][metric]) for e in epochs_data]
                     ax.plot(epochs, valid_metric, 
                            label=settings.legend_labels.get(f'{metric}_valid', f'Valid {metric}{label_suffix}'),
                            color=valid_color, linewidth=2.5)
             
+            ax.set_ylim(0, 1)  # Set y-axis limits for metrics
+            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))  # Format y-axis values
             self._style_plot(fig, ax, metric, settings)
         
         # Adjust layout to prevent cutoff
@@ -115,16 +119,22 @@ class Plotter:
             train_color, valid_color = self._get_colors(i, comparison_mode)
             
             if settings.metric_type.get() in ['both', 'train']:
-                train_metric = [e['train_metrics'][metric] for e in epochs_data]
+                # Get raw metric values without any conversion
+                train_metric = [float(e['train_metrics'][metric]) for e in epochs_data]
                 ax.plot(epochs, train_metric, 
                        label=settings.legend_labels.get(f'{metric}_train', f'Train {metric}{label_suffix}'),
                        color=train_color, linewidth=2.5)
             
             if settings.metric_type.get() in ['both', 'valid']:
-                valid_metric = [e['valid_metrics'][metric] for e in epochs_data]
+                # Get raw metric values without any conversion
+                valid_metric = [float(e['valid_metrics'][metric]) for e in epochs_data]
                 ax.plot(epochs, valid_metric, 
                        label=settings.legend_labels.get(f'{metric}_valid', f'Valid {metric}{label_suffix}'),
                        color=valid_color, linewidth=2.5)
+        
+        if metric != 'Loss':
+            ax.set_ylim(0, 1)  # Set y-axis limits for metrics
+            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))  # Format y-axis values
         
         self._style_plot(fig, ax, metric, settings)
         
@@ -135,9 +145,15 @@ class Plotter:
     def _style_plot(self, fig, ax, metric, settings):
         """Apply common styling to plots"""
         ax.set_xlabel('Epoch', fontsize=14, labelpad=10)
-        ax.set_ylabel(metric, fontsize=14, labelpad=10)
-        ax.set_title(settings.plot_titles.get(metric, f'{metric} over Epochs'), 
+        ax.set_ylabel(f'{metric} (Raw Value)', fontsize=14, labelpad=10)  # Updated to indicate raw values
+        ax.set_title(settings.plot_titles.get(metric, f'{metric} over Epochs (Raw Values)'), 
                     fontsize=16, pad=15)
+        
+        # Set y-axis to show values between 0 and 1
+        if metric != 'Loss':
+            ax.set_ylim(0, 1)
+            ax.yaxis.set_major_locator(plt.LinearLocator(11))  # Show 11 ticks from 0 to 1
+            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))  # Format as decimal
         
         # Improve legend
         ax.legend(frameon=True, fancybox=True, shadow=True, fontsize=12,

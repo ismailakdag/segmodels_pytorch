@@ -218,7 +218,7 @@ class ResultsVisualizer:
             best_metrics = training_info['best_metrics']
             for metric, value in best_metrics.items():
                 if metric != 'F1-Score':  # Skip F1-Score as it's redundant with Dice Score
-                    metrics.append(f"Best {metric}: {value:.4f} (Epoch {training_info['best_epoch']})")
+                    metrics.append(f"Best {metric}: {float(value):.4f} (Epoch {training_info['best_epoch']})")
         
         # Calculate individual best epochs for each metric
         epochs = result.get('epochs', [])
@@ -382,7 +382,7 @@ class ResultsVisualizer:
             for metric, value in best_metrics.items():
                 if metric != 'F1-Score':  # Skip F1-Score as it's redundant with Dice Score
                     self.create_info_row(frame, f"Best {metric}", 
-                                       f"{value:.4f} (Epoch {best_epoch})")
+                                       f"{float(value):.4f} (Epoch {best_epoch})")
         else:
             # Calculate from epochs if training_info metrics not available
             metrics = [
@@ -491,20 +491,21 @@ class ResultsVisualizer:
                 label_suffix = f" ({result['file_name']})" if len(self.results_list) > 1 else ""
                 
                 # Plot validation metrics
-                valid_values = [e['valid_metrics'][metric] for e in epochs_data]
+                valid_values = [float(e['valid_metrics'][metric]) for e in epochs_data]  # Convert to float
                 ax.plot(epochs, valid_values, label=f'Validation {metric}{label_suffix}', 
                        linewidth=2, marker='o', markersize=4)
             
             ax.set_xlabel('Epoch', fontsize=12, labelpad=10)
-            ax.set_ylabel(metric, fontsize=12, labelpad=10)
-            ax.set_title(f'{metric} Over Time', fontsize=14, pad=15)
+            ax.set_ylabel(f'{metric} (Raw Value)', fontsize=12, labelpad=10)  # Updated label
+            ax.set_title(f'{metric} Over Time (Raw Values)', fontsize=14, pad=15)  # Updated title
             ax.legend(frameon=True, fancybox=True, shadow=True, fontsize=10)
             ax.tick_params(axis='both', which='major', labelsize=10)
             
-            # Set y-axis limits for percentage metrics
+            # Set y-axis limits for metrics (between 0 and 1)
             if metric in ['IoU', 'Precision', 'Recall', 'Dice Score', 'Accuracy']:
                 ax.set_ylim(0, 1)
-                ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+                ax.yaxis.set_major_locator(plt.LinearLocator(11))  # Show 11 ticks from 0 to 1
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))  # Format as decimal
             
             # Adjust layout to prevent label cutoff
             plt.tight_layout()
